@@ -1,0 +1,71 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}User Management - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>User Management</h1>
+    <a href="{% url 'cryptos:user_add' %}" class="btn btn-primary">Add New User</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Staff</th>
+                        <th>Superuser</th>
+                        <th>Active</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_obj in users %}
+                    <tr>
+                        <td>{{ user_obj.username }}</td>
+                        <td>{{ user_obj.email|default:"—" }}</td>
+                        <td>
+                            {% if user_obj.is_staff %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user_obj.is_superuser %}
+                            <span class="badge bg-danger">Yes</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user_obj.is_active %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user_obj.last_login|date:"Y-m-d H:i"|default:"Never" }}</td>
+                        <td>
+                            <a href="{% url 'cryptos:user_edit' user_obj.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            {% if user_obj != user %}
+                            <a href="{% url 'cryptos:user_delete' user_obj.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No users found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

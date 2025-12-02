@@ -1,0 +1,985 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}{{ crypto.symbol }} Analysis - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ crypto.symbol }} - {{ crypto.name }} Analysis</h1>
+    <div>
+        <a href="?refresh=1" class="btn btn-primary me-2">🔄 Refresh Analysis</a>
+        <a href="{% url 'cryptos:crypto_list' %}" class="btn btn-secondary">Back to List</a>
+    </div>
+</div>
+
+{% if analysis %}
+<div class="alert alert-info mb-3">
+    <small>
+        <strong>Last updated:</strong> {{ analysis.analysis_date|timesince }} ago
+        {% if analysis.analysis_date|timesince == "0 minutes" %}
+            (just now)
+        {% endif %}
+    </small>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Current Price</h5>
+                <h3 class="text-primary">${{ current_price|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Amount</h5>
+                <h3>{{ crypto.amount }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Current Value</h5>
+                <h3 class="{% if current_price > crypto.purchase_price %}text-success{% elif current_price < crypto.purchase_price %}text-danger{% else %}text-muted{% endif %}">
+                    ${{ crypto.current_value|floatformat:2 }}
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">P/L</h5>
+                <h3 class="{% if crypto.profit_loss > 0 %}text-success{% elif crypto.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %}">
+                    ${{ crypto.profit_loss|floatformat:2 }}
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if analysis %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>AI Trading Recommendation</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>Recommendation</h5>
+                        <h2 class="{% if analysis.recommendation == 'buy' %}text-success{% elif analysis.recommendation == 'sell' %}text-danger{% else %}text-warning{% endif %}">
+                            {{ analysis.recommendation|upper }}
+                        </h2>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Confidence Score</h5>
+                        <h2>{{ analysis.confidence_score }}%</h2>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ analysis.confidence_score }}%">
+                                {{ analysis.confidence_score }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Analysis Date</h5>
+                        <p>{{ analysis.analysis_date|date:"Y-m-d H:i" }}</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h5>Reasoning</h5>
+                    <p class="text-muted">{{ analysis.ollama_reasoning }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if indicators and indicator_info %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Technical Indicators</h3>
+                <small class="text-muted">Click to expand for details</small>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.rsi.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">RSI (14)
+                                    {% if indicator_info.rsi.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.rsi.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.rsi.color|default:'muted' }}">{{ indicators.rsi|floatformat:2|default:"N/A" }}</h4>
+                                <small class="text-muted">Scale: 0-100</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.macd.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">MACD
+                                    {% if indicator_info.macd.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.macd.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.macd.color|default:'muted' }}">{{ indicators.macd|floatformat:4|default:"N/A" }}</h4>
+                                <small class="text-muted">Signal: {{ indicators.macd_signal|floatformat:4|default:"N/A" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.sma_20.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">SMA 20
+                                    {% if indicator_info.sma_20.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.sma_20.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.sma_20.color|default:'muted' }}">${{ indicators.sma_20|floatformat:2|default:"N/A" }}</h4>
+                                <small class="text-muted">Price level</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.sma_50.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">SMA 50
+                                    {% if indicator_info.sma_50.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.sma_50.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.sma_50.color|default:'muted' }}">${{ indicators.sma_50|floatformat:2|default:"N/A" }}</h4>
+                                <small class="text-muted">Price level</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.stoch_k.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Stochastic
+                                    {% if indicator_info.stoch_k.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.stoch_k.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.stoch_k.color|default:'muted' }}">K: {{ indicators.stoch_k|floatformat:2|default:"N/A" }}</h4>
+                                <small class="text-muted">D: {{ indicators.stoch_d|floatformat:2|default:"N/A" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.adx.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">ADX
+                                    {% if indicator_info.adx.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.adx.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.adx.color|default:'muted' }}">{{ indicators.adx|floatformat:2|default:"N/A" }}</h4>
+                                <small class="text-muted">Scale: 0-100</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.volume_ratio.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Volume Ratio
+                                    {% if indicator_info.volume_ratio.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.volume_ratio.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.volume_ratio.color|default:'muted' }}">{{ indicators.volume_ratio|floatformat:2|default:"N/A" }}x</h4>
+                                <small class="text-muted">Multiplier</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-{{ indicator_info.support.color|default:'secondary' }}">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Support/Resistance
+                                    {% if indicator_info.support.color == 'success' %}
+                                        <span class="text-success">↑</span>
+                                    {% elif indicator_info.support.color == 'danger' %}
+                                        <span class="text-danger">↓</span>
+                                    {% else %}
+                                        <span class="text-warning">=</span>
+                                    {% endif %}
+                                </h6>
+                                <h4 class="text-{{ indicator_info.support.color|default:'muted' }}">${{ indicators.support|floatformat:2|default:"N/A" }}</h4>
+                                <small class="text-muted">Res: ${{ indicators.resistance|floatformat:2|default:"N/A" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion" id="indicatorsAccordion">
+                    <!-- RSI -->
+                    {% if indicator_info.rsi %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#rsiCollapse">
+                                <strong class="text-{{ indicator_info.rsi.color }}">RSI (14): {{ indicators.rsi|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.rsi.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="rsiCollapse" class="accordion-collapse collapse show" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.rsi.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.rsi.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- MACD -->
+                    {% if indicator_info.macd %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#macdCollapse">
+                                <strong class="text-{{ indicator_info.macd.color }}">MACD: {{ indicators.macd|floatformat:4 }} | Signal: {{ indicators.macd_signal|floatformat:4 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.macd.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="macdCollapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.macd.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.macd.interpretation }}</p>
+                                <p><strong>Histogram:</strong> {{ indicators.macd_histogram|floatformat:4 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- SMA 20 -->
+                    {% if indicator_info.sma_20 %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sma20Collapse">
+                                <strong class="text-{{ indicator_info.sma_20.color }}">SMA 20: ${{ indicators.sma_20|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.sma_20.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="sma20Collapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.sma_20.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.sma_20.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- SMA 50 -->
+                    {% if indicator_info.sma_50 %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sma50Collapse">
+                                <strong class="text-{{ indicator_info.sma_50.color }}">SMA 50: ${{ indicators.sma_50|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.sma_50.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="sma50Collapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.sma_50.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.sma_50.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bollinger Bands -->
+                    {% if indicator_info.bb_upper %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bbCollapse">
+                                <strong class="text-{{ indicator_info.bb_upper.color }}">Bollinger Bands: Upper ${{ indicators.bb_upper|floatformat:2 }} | Lower ${{ indicators.bb_lower|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.bb_upper.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="bbCollapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.bb_upper.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.bb_upper.interpretation }}</p>
+                                <p><strong>Middle Band:</strong> ${{ indicators.bb_middle|floatformat:2 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Stochastic -->
+                    {% if indicator_info.stoch_k %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#stochCollapse">
+                                <strong class="text-{{ indicator_info.stoch_k.color }}">Stochastic: K={{ indicators.stoch_k|floatformat:2 }} | D={{ indicators.stoch_d|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.stoch_k.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="stochCollapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.stoch_k.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.stoch_k.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ADX -->
+                    {% if indicator_info.adx %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#adxCollapse">
+                                <strong class="text-{{ indicator_info.adx.color }}">ADX: {{ indicators.adx|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.adx.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="adxCollapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.adx.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.adx.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Volume Ratio -->
+                    {% if indicator_info.volume_ratio %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#volumeCollapse">
+                                <strong class="text-{{ indicator_info.volume_ratio.color }}">Volume Ratio: {{ indicators.volume_ratio|floatformat:2 }}x</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.volume_ratio.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="volumeCollapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.volume_ratio.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.volume_ratio.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Support & Resistance -->
+                    {% if indicator_info.support %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#srCollapse">
+                                <strong class="text-{{ indicator_info.support.color }}">Support: ${{ indicators.support|floatformat:2 }} | Resistance: ${{ indicators.resistance|floatformat:2 }}</strong>
+                                <span class="badge bg-secondary ms-2">Scale: {{ indicator_info.support.scale }}</span>
+                            </button>
+                        </h2>
+                        <div id="srCollapse" class="accordion-collapse collapse" data-bs-parent="#indicatorsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Explanation:</strong> {{ indicator_info.support.explanation }}</p>
+                                <p><strong>Interpretation:</strong> {{ indicator_info.support.interpretation }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if chart_data and chart_data.prices %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Price Chart with Technical Indicators</h3>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="zoomIn()" title="Zoom In">
+                        <span>+</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="zoomOut()" title="Zoom Out">
+                        <span>−</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="resetZoom()" title="Reset Zoom">
+                        <span>⟲</span> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height: 500px;">
+                    <canvas id="priceChart"></canvas>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <strong>Zoom:</strong> Use buttons above or mouse wheel to zoom. <strong>Pan:</strong> Click and drag to move the chart.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if chart_data and chart_data.prices %}
+let priceChartInstance = null;
+
+function zoomIn() {
+    if (priceChartInstance) {
+        const chart = priceChartInstance;
+        const scales = chart.scales;
+        const xScale = scales.x;
+        const yScale = scales.y;
+        
+        if (xScale && yScale) {
+            const xCenter = (xScale.min + xScale.max) / 2;
+            const yCenter = (yScale.min + yScale.max) / 2;
+            
+            // Zoom in by reducing range by 20%
+            const xRange = xScale.max - xScale.min;
+            const yRange = yScale.max - yScale.min;
+            
+            const newXRange = xRange * 0.8;
+            const newYRange = yRange * 0.8;
+            
+            xScale.options.min = xCenter - (newXRange / 2);
+            xScale.options.max = xCenter + (newXRange / 2);
+            yScale.options.min = yCenter - (newYRange / 2);
+            yScale.options.max = yCenter + (newYRange / 2);
+            
+            chart.update('none');
+        }
+    }
+}
+
+function zoomOut() {
+    if (priceChartInstance) {
+        const chart = priceChartInstance;
+        const scales = chart.scales;
+        const xScale = scales.x;
+        const yScale = scales.y;
+        
+        if (xScale && yScale) {
+            const xCenter = (xScale.min + xScale.max) / 2;
+            const yCenter = (yScale.min + yScale.max) / 2;
+            
+            // Zoom out by increasing range by 25%
+            const xRange = xScale.max - xScale.min;
+            const yRange = yScale.max - yScale.min;
+            
+            const newXRange = xRange * 1.25;
+            const newYRange = yRange * 1.25;
+            
+            xScale.options.min = xCenter - (newXRange / 2);
+            xScale.options.max = xCenter + (newXRange / 2);
+            yScale.options.min = yCenter - (newYRange / 2);
+            yScale.options.max = yCenter + (newYRange / 2);
+            
+            chart.update('none');
+        }
+    }
+}
+
+function resetZoom() {
+    if (priceChartInstance) {
+        const chart = priceChartInstance;
+        
+        // Method 1: Try plugin's resetZoom method (chartjs-plugin-zoom v2.x)
+        if (chart.resetZoom && typeof chart.resetZoom === 'function') {
+            try {
+                chart.resetZoom();
+                return;
+            } catch (e) {
+                console.log('Plugin resetZoom failed, trying alternative', e);
+            }
+        }
+        
+        // Method 2: Access plugin state and reset manually
+        const pluginState = chart.zoomPluginState || (chart.plugins && chart.plugins.find(p => p.id === 'zoom'));
+        
+        if (pluginState) {
+            try {
+                // Reset plugin state
+                if (pluginState.resetZoom) {
+                    pluginState.resetZoom();
+                    return;
+                }
+            } catch (e) {
+                console.log('Plugin state reset failed', e);
+            }
+        }
+        
+        // Method 3: Manual reset by clearing scale limits completely
+        const scales = chart.scales;
+        
+        if (scales.x) {
+            // Completely remove min/max from options
+            if (scales.x.options) {
+                scales.x.options.min = null;
+                scales.x.options.max = null;
+            }
+            // Clear computed values
+            scales.x.min = null;
+            scales.x.max = null;
+            // Reset internal state
+            if (scales.x._range) {
+                scales.x._range = null;
+            }
+        }
+        
+        if (scales.y) {
+            // Completely remove min/max from options
+            if (scales.y.options) {
+                scales.y.options.min = null;
+                scales.y.options.max = null;
+            }
+            // Clear computed values
+            scales.y.min = null;
+            scales.y.max = null;
+            // Reset internal state
+            if (scales.y._range) {
+                scales.y._range = null;
+            }
+        }
+        
+        // Force a complete update to reset the view
+        chart.update('none');
+        
+        // Additional update to ensure scales are recalculated
+        setTimeout(() => {
+            chart.update('none');
+        }, 10);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('priceChart');
+    if (!ctx) return;
+    
+    // Ensure zoom plugin is available
+    const zoomPlugin = window.ChartZoom || (window.Chart && window.Chart.registry && window.Chart.registry.getPlugin('zoom'));
+    
+    const chartCtx = ctx.getContext('2d');
+    const labels = {{ chart_data.labels|safe }};
+    const timestamps = {{ chart_data.timestamps|safe }} || [];
+    const priceData = {{ chart_data.prices|safe }};
+    
+    // Format labels: show date only when it changes, otherwise just time
+    const formattedLabels = [];
+    let lastDate = null;
+    
+    if (timestamps && timestamps.length > 0) {
+        for (let i = 0; i < timestamps.length; i++) {
+            const ts = timestamps[i];
+            const currentDate = ts.date || '';
+            
+            if (currentDate && currentDate !== lastDate) {
+                // Show date and time when date changes (date on top, time below)
+                formattedLabels.push(ts.date + '\n' + ts.time);
+                lastDate = currentDate;
+            } else {
+                // Show only time
+                formattedLabels.push(ts.time || labels[i] || '');
+            }
+        }
+    } else {
+        // Fallback to labels if timestamps not available
+        formattedLabels.push(...labels);
+    }
+
+    // Process indicator data to ensure they extend to the end
+    function extendIndicators(indicatorData, targetLength) {
+        if (!indicatorData || indicatorData.length === 0) return null;
+        
+        // Find last valid value
+        let lastValid = null;
+        for (let i = indicatorData.length - 1; i >= 0; i--) {
+            if (indicatorData[i] !== null && indicatorData[i] !== undefined && !isNaN(indicatorData[i])) {
+                lastValid = indicatorData[i];
+                break;
+            }
+        }
+        
+        // Extend array to target length
+        const extended = [...indicatorData];
+        while (extended.length < targetLength && lastValid !== null) {
+            extended.push(lastValid);
+        }
+        
+        // Fill any null values with forward fill
+        for (let i = 0; i < extended.length; i++) {
+            if (extended[i] === null || extended[i] === undefined || isNaN(extended[i])) {
+                if (lastValid !== null) {
+                    extended[i] = lastValid;
+                } else if (i > 0) {
+                    extended[i] = extended[i - 1];
+                }
+            } else {
+                lastValid = extended[i];
+            }
+        }
+        
+        return extended.slice(0, targetLength);
+    }
+
+    const datasets = [{
+        label: 'Price (USD)',
+        data: priceData,
+        borderColor: '#2E86AB',  // Professional blue
+        backgroundColor: 'rgba(46, 134, 171, 0.1)',
+        borderWidth: 3,
+        tension: 0.1,
+        fill: false,
+        yAxisID: 'y',
+        pointRadius: 0,
+        pointHoverRadius: 4
+    }];
+
+    {% if chart_data.sma_20 and chart_data.sma_20|length > 0 %}
+    // SMA 20
+    const sma20Data = extendIndicators({{ chart_data.sma_20|safe }}, priceData.length);
+    if (sma20Data) {
+        datasets.push({
+            label: 'SMA 20',
+            data: sma20Data,
+            borderColor: '#E63946',  // Vibrant red
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            borderDash: [8, 4],
+            tension: 0.1,
+            yAxisID: 'y',
+            pointRadius: 0,
+            fill: false
+        });
+    }
+    {% endif %}
+
+    {% if chart_data.sma_50 and chart_data.sma_50|length > 0 %}
+    // SMA 50
+    const sma50Data = extendIndicators({{ chart_data.sma_50|safe }}, priceData.length);
+    if (sma50Data) {
+        datasets.push({
+            label: 'SMA 50',
+            data: sma50Data,
+            borderColor: '#457B9D',  // Medium blue
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            borderDash: [8, 4],
+            tension: 0.1,
+            yAxisID: 'y',
+            pointRadius: 0,
+            fill: false
+        });
+    }
+    {% endif %}
+
+    {% if chart_data.bb_upper and chart_data.bb_upper|length > 0 %}
+    // Bollinger Bands with fill between upper and lower
+    const bbUpperData = extendIndicators({{ chart_data.bb_upper|safe }}, priceData.length);
+    const bbMiddleData = extendIndicators({{ chart_data.bb_middle|safe }}, priceData.length);
+    const bbLowerData = extendIndicators({{ chart_data.bb_lower|safe }}, priceData.length);
+    
+    if (bbUpperData && bbLowerData) {
+        // Create filled area between BB Upper and Lower
+        const bbFillData = bbUpperData.map((upper, i) => ({
+            x: i,
+            y: [bbLowerData[i], upper]
+        }));
+        
+        // BB Upper
+        datasets.push({
+            label: 'BB Upper',
+            data: bbUpperData,
+            borderColor: '#F77F00',  // Orange
+            backgroundColor: 'rgba(247, 127, 0, 0.1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.1,
+            yAxisID: 'y',
+            pointRadius: 0,
+            fill: '+2'  // Fill to BB Lower
+        });
+        // BB Middle
+        if (bbMiddleData) {
+            datasets.push({
+                label: 'BB Middle',
+                data: bbMiddleData,
+                borderColor: '#FCBF49',  // Yellow
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [8, 4],
+                tension: 0.1,
+                yAxisID: 'y',
+                pointRadius: 0,
+                fill: false
+            });
+        }
+        // BB Lower
+        datasets.push({
+            label: 'BB Lower',
+            data: bbLowerData,
+            borderColor: '#F77F00',  // Orange
+            backgroundColor: 'rgba(247, 127, 0, 0.1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.1,
+            yAxisID: 'y',
+            pointRadius: 0,
+            fill: false
+        });
+    }
+    {% endif %}
+
+    {% if indicators and indicators.support %}
+    // Support & Resistance lines
+    datasets.push({
+        label: 'Support',
+        data: Array(priceData.length).fill({{ indicators.support }}),
+        borderColor: '#06A77D',  // Green
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        borderDash: [12, 6],
+        yAxisID: 'y',
+        pointRadius: 0,
+        fill: false
+    });
+    datasets.push({
+        label: 'Resistance',
+        data: Array(priceData.length).fill({{ indicators.resistance }}),
+        borderColor: '#D62828',  // Red
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        borderDash: [12, 6],
+        yAxisID: 'y',
+        pointRadius: 0,
+        fill: false
+    });
+    {% endif %}
+
+    // Register zoom plugin if not already registered
+    if (typeof Chart !== 'undefined' && Chart.register) {
+        try {
+            // Try to get the zoom plugin from the global scope
+            const zoomPlugin = window.zoomPlugin || (typeof zoomPlugin !== 'undefined' ? zoomPlugin : null);
+            if (zoomPlugin && !Chart.registry.getPlugin('zoom')) {
+                Chart.register(zoomPlugin);
+            }
+        } catch (e) {
+            // Plugin may already be registered or loaded automatically
+            console.log('Zoom plugin registration:', e);
+        }
+    }
+    
+    priceChartInstance = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+            labels: formattedLabels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            backgroundColor: '#FFFFFF',
+            interaction: {
+                mode: 'index',
+                intersect: false,
+                // Allow pan to work properly
+                includeInvisible: false
+            },
+            elements: {
+                point: {
+                    hoverRadius: 6,
+                    hoverBorderWidth: 2
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += '$' + context.parsed.y.toFixed(2);
+                            }
+                            return label;
+                        }
+                    }
+                },
+                zoom: {
+                    limits: {
+                        x: {min: 'original', max: 'original'},
+                        y: {min: 'original', max: 'original'}
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                            speed: 0.1
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'xy',
+                        drag: {
+                            enabled: false
+                        }
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy',
+                        modifierKey: null,
+                        threshold: 3,
+                        overScaleMode: 'xy',
+                        speed: 20,
+                        speedAdjust: 40
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    position: 'left',
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        lineWidth: 1
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        },
+                        font: {
+                            size: 11
+                        },
+                        color: '#666'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Price (USD)',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        lineWidth: 1
+                    },
+                    ticks: {
+                        maxTicksLimit: 30,
+                        font: {
+                            size: 10
+                        },
+                        color: '#666',
+                        maxRotation: 45,
+                        minRotation: 0,
+                        callback: function(value, index) {
+                            if (index >= 0 && index < formattedLabels.length) {
+                                const label = formattedLabels[index];
+                                // If label contains newline, split for multiline display
+                                if (typeof label === 'string' && label.includes('\n')) {
+                                    return label.split('\n');
+                                }
+                                return label;
+                            }
+                            const label = this.getLabelForValue(value);
+                            if (typeof label === 'string') {
+                                // If label contains newline, it has date and time
+                                if (label.includes('\n')) {
+                                    return label.split('\n');
+                                }
+                                // Extract HH:MM format
+                                const timeMatch = label.match(/(\d{2}:\d{2})/);
+                                if (timeMatch) {
+                                    return timeMatch[1];
+                                }
+                                // If already in HH:MM format
+                                if (/^\d{2}:\d{2}$/.test(label)) {
+                                    return label;
+                                }
+                            }
+                            return label;
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    }
+                }
+            }
+        }
+    });
+});
+{% endif %}
+</script>
+{% endblock %}
+

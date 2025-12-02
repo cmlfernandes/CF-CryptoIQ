@@ -1,0 +1,55 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}Analysis Overview - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<h1>Technical Analysis Overview</h1>
+
+{% if analyses %}
+<div class="table-responsive mt-4">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Current Price</th>
+                <th>Recommendation</th>
+                <th>Confidence</th>
+                <th>Analysis Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in analyses %}
+            <tr>
+                <td><strong>{{ item.crypto.symbol }}</strong></td>
+                <td>{{ item.crypto.name }}</td>
+                <td>${{ item.current_price|floatformat:2 }}</td>
+                <td>
+                    <span class="badge {% if item.analysis.recommendation == 'buy' %}bg-success{% elif item.analysis.recommendation == 'sell' %}bg-danger{% else %}bg-warning{% endif %}">
+                        {{ item.analysis.recommendation|upper }}
+                    </span>
+                </td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ item.analysis.confidence_score }}%">
+                            {{ item.analysis.confidence_score }}%
+                        </div>
+                    </div>
+                </td>
+                <td>{{ item.analysis.analysis_date|date:"Y-m-d H:i" }}</td>
+                <td>
+                    <a href="{% url 'cryptos:crypto_analysis' item.crypto.id %}" class="btn btn-sm btn-info">View Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info mt-4">
+    <p>No technical analyses available yet. Add cryptocurrencies and run analysis to see recommendations.</p>
+</div>
+{% endif %}
+{% endblock %}
+

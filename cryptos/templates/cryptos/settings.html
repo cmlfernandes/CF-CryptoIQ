@@ -1,0 +1,196 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}Settings - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<h1>Application Settings</h1>
+
+<form method="post" class="mt-4">
+    {% csrf_token %}
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Background Tasks</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="auto_update_prices" name="auto_update_prices" {% if settings.auto_update_prices %}checked{% endif %}>
+                        <label class="form-check-label" for="auto_update_prices">
+                            <strong>Auto Update Prices</strong>
+                        </label>
+                        <small class="form-text text-muted d-block">Automatically update cryptocurrency prices in the background</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="price_update_interval" class="form-label">Price Update Interval (minutes)</label>
+                    <input type="number" class="form-control" id="price_update_interval" name="price_update_interval" value="{{ settings.price_update_interval }}" min="1" required>
+                    <small class="form-text text-muted">How often to update prices (default: 60 minutes)</small>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="auto_run_analysis" name="auto_run_analysis" {% if settings.auto_run_analysis %}checked{% endif %}>
+                        <label class="form-check-label" for="auto_run_analysis">
+                            <strong>Auto Run Analysis</strong>
+                        </label>
+                        <small class="form-text text-muted d-block">Automatically run technical analysis in the background</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="analysis_interval" class="form-label">Analysis Interval (minutes)</label>
+                    <input type="number" class="form-control" id="analysis_interval" name="analysis_interval" value="{{ settings.analysis_interval }}" min="1" required>
+                    <small class="form-text text-muted">How often to run analysis (default: 360 minutes / 6 hours)</small>
+                </div>
+            </div>
+            
+            {% if settings.last_price_update %}
+            <div class="alert alert-info">
+                <strong>Last Price Update:</strong> {{ settings.last_price_update|date:"Y-m-d H:i:s" }}
+            </div>
+            {% endif %}
+            
+            {% if settings.last_analysis_run %}
+            <div class="alert alert-info">
+                <strong>Last Analysis Run:</strong> {{ settings.last_analysis_run|date:"Y-m-d H:i:s" }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Ollama Configuration</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ollama_base_url" class="form-label">Ollama Base URL</label>
+                    <input type="text" class="form-control" id="ollama_base_url" name="ollama_base_url" value="{{ settings.ollama_base_url }}" required onchange="loadModels()">
+                    <small class="form-text text-muted">Ollama server URL (e.g., http://localhost:11434)</small>
+                </div>
+                <div class="col-md-6">
+                    <label for="ollama_model" class="form-label">Ollama Model</label>
+                    <select class="form-select" id="ollama_model" name="ollama_model" required>
+                        {% if available_models %}
+                            {% for model in available_models %}
+                                <option value="{{ model.name }}" {% if settings.ollama_model == model.name %}selected{% endif %}>
+                                    {{ model.name }}
+                                </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="{{ settings.ollama_model }}" selected>{{ settings.ollama_model }}</option>
+                            <option value="" disabled>No models available - check Ollama connection</option>
+                        {% endif %}
+                    </select>
+                    <small class="form-text text-muted">Select model from available Ollama models</small>
+                    {% if not available_models %}
+                        <div class="alert alert-warning mt-2">
+                            <small>Could not load models from Ollama. Please check the connection.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Analysis Settings</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="historical_days" class="form-label">Historical Days</label>
+                    <input type="number" class="form-control" id="historical_days" name="historical_days" value="{{ settings.historical_days }}" min="1" max="365" required>
+                    <small class="form-text text-muted">Number of days of historical data to use for analysis (default: 30)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        <a href="{% url 'cryptos:crypto_list' %}" class="btn btn-secondary">Cancel</a>
+        <button type="button" class="btn btn-info" onclick="loadModels()">Refresh Models</button>
+    </div>
+</form>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function loadModels() {
+    const baseUrl = document.getElementById('ollama_base_url').value;
+    const modelSelect = document.getElementById('ollama_model');
+    
+    if (!baseUrl) {
+        alert('Please enter Ollama Base URL first');
+        return;
+    }
+    
+    // Show loading state
+    modelSelect.disabled = true;
+    modelSelect.innerHTML = '<option>Loading models...</option>';
+    
+    // Get CSRF token
+    const csrftoken = getCookie('csrftoken');
+    
+    // Make AJAX request to load models
+    fetch('{% url "cryptos:load_models" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            'base_url': baseUrl
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        modelSelect.innerHTML = '';
+        if (data.models && data.models.length > 0) {
+            const currentModel = '{{ settings.ollama_model }}';
+            data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.name;
+                option.textContent = model.name;
+                if (model.name === currentModel) {
+                    option.selected = true;
+                }
+                modelSelect.appendChild(option);
+            });
+        } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No models available';
+            option.disabled = true;
+            modelSelect.appendChild(option);
+        }
+        modelSelect.disabled = false;
+    })
+    .catch(error => {
+        console.error('Error loading models:', error);
+        modelSelect.innerHTML = '<option value="">Error loading models</option>';
+        modelSelect.disabled = false;
+    });
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,19 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}Delete Cryptocurrency - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<h1>Delete Cryptocurrency</h1>
+
+<div class="alert alert-warning mt-4">
+    <p>Are you sure you want to delete <strong>{{ crypto.symbol }} - {{ crypto.name }}</strong>?</p>
+    <p>This action cannot be undone. All price history and technical analyses for this cryptocurrency will also be deleted.</p>
+</div>
+
+<form method="post" class="mt-4">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'cryptos:crypto_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
+

@@ -1,0 +1,46 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.card {
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #343a40;
+    color: white;
+    font-weight: bold;
+}
+
+.table th {
+    background-color: #343a40;
+    color: white;
+}
+
+.btn {
+    margin-right: 5px;
+}
+
+.progress {
+    height: 25px;
+}
+
+.badge {
+    font-size: 1em;
+    padding: 0.5em 1em;
+}
+
+footer a {
+    transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+footer a:hover {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+

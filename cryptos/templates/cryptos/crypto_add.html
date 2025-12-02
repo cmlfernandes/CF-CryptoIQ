@@ -1,0 +1,150 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}Add Cryptocurrency - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<h1>Add New Cryptocurrency</h1>
+
+<form method="post" class="mt-4">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="symbol" class="form-label">Symbol *</label>
+                <input type="text" class="form-control" id="symbol" name="symbol" required placeholder="e.g., BTC">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="name" class="form-label">Name *</label>
+                <input type="text" class="form-control" id="name" name="name" required placeholder="e.g., Bitcoin">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount *</label>
+                <input type="number" step="0.00000001" class="form-control" id="amount" name="amount" required placeholder="0.00000000">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="purchase_price" class="form-label">Purchase Price (USD) *</label>
+                <input type="number" step="0.01" class="form-control" id="purchase_price" name="purchase_price" required placeholder="0.00">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="purchase_date" class="form-label">Purchase Date</label>
+                <input type="datetime-local" class="form-control" id="purchase_date" name="purchase_date" value="">
+            </div>
+        </div>
+    </div>
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Add Cryptocurrency</button>
+        <a href="{% url 'cryptos:crypto_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<script>
+// Set default date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('purchase_date');
+    if (dateInput && !dateInput.value) {
+        const now = new Date();
+        // Format: YYYY-MM-DDTHH:mm
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+    
+    // Auto-fill purchase price when symbol is entered
+    const symbolInput = document.getElementById('symbol');
+    const purchasePriceInput = document.getElementById('purchase_price');
+    let priceFetchTimeout = null;
+    
+    if (symbolInput && purchasePriceInput) {
+        symbolInput.addEventListener('input', function() {
+            const symbol = this.value.trim().toUpperCase();
+            
+            // Clear previous timeout
+            if (priceFetchTimeout) {
+                clearTimeout(priceFetchTimeout);
+            }
+            
+            // Only fetch if symbol is at least 2 characters and purchase_price is empty
+            if (symbol.length >= 2 && !purchasePriceInput.value) {
+                // Debounce: wait 500ms after user stops typing
+                priceFetchTimeout = setTimeout(function() {
+                    fetchPrice(symbol);
+                }, 500);
+            }
+        });
+        
+        // Also fetch on blur if price is empty
+        symbolInput.addEventListener('blur', function() {
+            const symbol = this.value.trim().toUpperCase();
+            if (symbol.length >= 2 && !purchasePriceInput.value) {
+                fetchPrice(symbol);
+            }
+        });
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function fetchPrice(symbol) {
+        if (!symbol || symbol.length < 2) return;
+        
+        // Show loading indicator
+        purchasePriceInput.placeholder = 'Fetching price...';
+        purchasePriceInput.disabled = true;
+        
+        // Build URL manually (Django template can't handle dynamic URL parameters)
+        const baseUrl = '{% url "cryptos:get_price" "BTC" %}'.replace('BTC', symbol);
+        
+        // Fetch price using the get_price endpoint
+        fetch(baseUrl, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            purchasePriceInput.disabled = false;
+            if (data.success && data.price) {
+                purchasePriceInput.value = parseFloat(data.price).toFixed(2);
+                purchasePriceInput.placeholder = '0.00';
+            } else {
+                purchasePriceInput.placeholder = '0.00 (Price not found)';
+            }
+        })
+        .catch(error => {
+            purchasePriceInput.disabled = false;
+            purchasePriceInput.placeholder = '0.00 (Error fetching price)';
+            console.error('Error fetching price:', error);
+        });
+    }
+});
+</script>
+{% endblock %}
+

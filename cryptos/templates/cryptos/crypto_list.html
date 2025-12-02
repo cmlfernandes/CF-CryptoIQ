@@ -1,0 +1,62 @@
+{% extends 'cryptos/base.html' %}
+
+{% block title %}My Cryptocurrencies - CF CryptoIQ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Cryptocurrencies</h1>
+    <a href="{% url 'cryptos:crypto_add' %}" class="btn btn-primary">Add New Crypto</a>
+</div>
+
+{% if crypto_list_data %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Amount</th>
+                <th>Purchase Price</th>
+                <th>Current Price</th>
+                <th>24h Change</th>
+                <th>Current Value</th>
+                <th>P/L</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in crypto_list_data %}
+            <tr>
+                <td><strong>{{ item.crypto.symbol }}</strong></td>
+                <td>{{ item.crypto.name }}</td>
+                <td>{{ item.crypto.amount }}</td>
+                <td>${{ item.crypto.purchase_price }}</td>
+                <td>${{ item.current_price|floatformat:2 }}</td>
+                <td>
+                    <span class="{% if item.price_change_24h > 0 %}text-success{% elif item.price_change_24h < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {{ item.price_change_24h|floatformat:2 }}%
+                    </span>
+                </td>
+                <td>${{ item.current_value|floatformat:2 }}</td>
+                <td>
+                    <span class="{% if item.profit_loss > 0 %}text-success{% elif item.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        ${{ item.profit_loss|floatformat:2 }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'cryptos:crypto_analysis' item.crypto.id %}" class="btn btn-sm btn-info">Analysis</a>
+                    <a href="{% url 'cryptos:crypto_edit' item.crypto.id %}" class="btn btn-sm btn-warning">Edit</a>
+                    <a href="{% url 'cryptos:crypto_delete' item.crypto.id %}" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <p>No cryptocurrencies registered yet. <a href="{% url 'cryptos:crypto_add' %}">Add your first crypto</a> to get started!</p>
+</div>
+{% endif %}
+{% endblock %}
+
