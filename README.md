@@ -2,7 +2,12 @@
 
 A comprehensive web application built with Django for cryptocurrency portfolio management and technical analysis with AI-powered buy/sell recommendations using Ollama LLM.
 
-![CF CryptoIQ](https://CF-CryptoIQ.carlosfernandes.eu/)
+[![Python](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/django-4.2.7-green.svg)](https://www.djangoproject.com/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-15+-blue.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Ollama](https://img.shields.io/badge/ollama-LLM-orange.svg)](https://ollama.ai/)
 
 ## Features
 
