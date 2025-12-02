@@ -2,7 +2,7 @@
 
 A comprehensive web application built with Django for cryptocurrency portfolio management and technical analysis with AI-powered buy/sell recommendations using Ollama LLM.
 
-![CF CryptoIQ](https://CFCryptoIQ.carlosfernandes.eu/)
+![CF CryptoIQ](https://CF-CryptoIQ.carlosfernandes.eu/)
 
 ## Features
 
@@ -289,12 +289,12 @@ The application calculates the following technical indicators:
 ### Project Structure
 
 ```
-cf_cryptoiq/
+CF_CryptoIQ/
 ├── cf_cryptoiq/              # Project settings
 │   ├── settings.py         # Django settings
 │   ├── urls.py            # Root URL configuration
 │   └── wsgi.py            # WSGI configuration
-├── cryptos/               # Main application
+├── Cryptos/               # Main application
 │   ├── models.py          # Database models
 │   ├── views.py           # View functions
 │   ├── urls.py            # URL routing
@@ -374,7 +374,7 @@ Copyright (c) 2025 Carlos Fernandes
 
 - Website: [www.carlosfernandes.eu](https://www.carlosfernandes.eu)
 - Email: eu@carlos.fernandes.eu
-- Application: [CFCryptoIQ.carlosfernandes.eu](https://CFCryptoIQ.carlosfernandes.eu)
+- Application: [CF-CryptoIQ.carlosfernandes.eu](https://CF-CryptoIQ.carlosfernandes.eu)
 
 ## Acknowledgments
 
